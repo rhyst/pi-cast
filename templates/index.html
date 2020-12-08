@@ -1,0 +1,65 @@
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pi Cast</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script>
+      async function command({endpoint, data = {}, callback = () => {}, method = 'POST' }) {
+        const response = await fetch(endpoint, {
+          method,
+          headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+          },
+          body: method === 'POST' ? JSON.stringify(data) : null
+        })
+        const json = await response.json();
+        callback(json)
+      }
+    </script>
+</head>
+<body>
+    <main>
+    <h1>Pi Cast</h1>
+    {% include 'device.html' %}
+    <form>
+    <h2>Folders</h2>
+    <div class="directories">
+      {% if request.path != '/' %}
+        <a href="/">/</a>
+        <a href="..">..</a>
+        {% endif %}
+        {% for directory in directories %}
+            <a href="/{{ directory['path'] }}">
+                {{ directory['name'] }}
+            </a>
+        {% endfor %}
+    </div>
+    {% if files|length > 0 %}
+    <h2>Files</h2>
+    <div class="files">
+        {% for file in files %}
+        {% if file['is_media'] %}</span><a class="cast" data-request-path="{{ file['path'] }}"" href="/cast/{{ file['path'] }}">Cast</a>{% else %}<span></span>{% endif %}<span>{{ file['name'] }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    </form>
+    </main>
+
+<script>
+  // Do cast
+  document.querySelectorAll('.cast').forEach(el => el.addEventListener('click', e => {
+    e.preventDefault();
+    const requestPath = el.dataset.requestPath;
+    command({ 
+      endpoint: '/cast', 
+      data: {
+        request_path: requestPath
+      },
+      callback: response => renderStatus(response.status)
+    })
+  }))
+</script>
+</body>
+</html>

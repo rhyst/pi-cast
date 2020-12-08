@@ -1,0 +1,59 @@
+<form class="" method="POST" id="status">
+</form>
+<script>
+    function renderStatus(status) {
+        document.getElementById('status').innerHTML = `
+        <h2>Device Status</h2>
+        <input style="display:none;" name="request_path" value="{{ request.path }}" />
+        <div class="single-line">
+            <span><strong>Device:&nbsp;&nbsp;</strong></span>
+            <select name="device">
+                {% for cast in casts %}
+                <option value="{{ cast['name'] }}" ${ status.name === "{{ cast['name'] }}" ? 'selected' : '' }>{{ cast['name'] }} - {{ cast['type'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <p><strong>Volume:&nbsp;</strong>The volume is currently at ${status.volume}%</div>
+        <input name="volume" type="range" min="1" max="100" value="${status.volume}">
+        <p>${status.is_idle ? ' The chromecast is idle' : status.display_name}${status.status_text ?  ` - ${status.status_text}` : ''}</p>
+        <div class="single-line">
+            <button id="play" class="small" ${status.is_idle ? 'disabled' : ''}>Play</button>&nbsp;
+            <button id="pause" class="small" ${status.is_idle ? 'disabled' : ''}>Pause</button>&nbsp;
+            <button id="stop" class="small" ${status.is_idle ? 'disabled' : ''}>Stop</button>
+        </div>
+        `
+
+        document.getElementById('play').addEventListener('click', (e) => {
+            e.preventDefault();
+            command({ endpoint: '/play', callback: response => renderStatus(response.status) })
+        })
+
+        document.getElementById('pause').addEventListener('click', (e) => {
+            e.preventDefault();
+            command({ endpoint: '/pause', callback: response => renderStatus(response.status) })
+        })
+
+        document.getElementById('stop').addEventListener('click', (e) => {
+            e.preventDefault();
+            command({ endpoint: '/stop', callback: response => renderStatus(response.status) })
+        })
+
+        // Update device
+        document.querySelector('select[name="device"]').addEventListener('change', e => {
+            const device = e.target.value;
+            command({ endpoint: '/device', data: { device }, callback: response => renderStatus(response.status) })
+        })
+
+        // Update volume 
+        document.querySelector('input[name="volume"]').addEventListener('change', e => {
+            const volume = e.target.value;
+            command({
+                endpoint: '/volume', 
+                data: { volume: volume / 100 },
+                callback: response => renderStatus(response.status)
+            })
+        })
+    }
+    command({endpoint: '/status', method: 'GET', callback: response => renderStatus(response.status) })
+    setInterval(command, 5000, {endpoint: '/status', method: 'GET', callback: response => renderStatus(response.status) })
+</script>
